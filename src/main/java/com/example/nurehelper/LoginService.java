@@ -25,6 +25,6 @@ public class LoginService {
             int position = response.indexOf("logintoken") + 19;
             return response.substring(position, position + 32);
         }
-        throw new RuntimeException("pidoras!!!");
+        throw new RuntimeException("Couldn't retrieve login token from url.");
     }
 }
