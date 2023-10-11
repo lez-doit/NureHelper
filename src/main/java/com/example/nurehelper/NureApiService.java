@@ -6,7 +6,7 @@ import org.springframework.web.client.RestTemplate;
 
 @Service
 @RequiredArgsConstructor
-public class RestService {
+public class NureApiService {
     private final RestTemplate restTemplate;
     public String getStringForUrl(String url) {
         return restTemplate.getForObject(url, String.class);
