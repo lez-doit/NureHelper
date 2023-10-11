@@ -1,7 +1,9 @@
 package com.example.nurehelper;
 
+import com.example.nurehelper.dto.LoginDTO;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
+import org.springframework.beans.factory.annotation.Value;
 import org.springframework.scheduling.annotation.Scheduled;
 import org.springframework.stereotype.Service;
 
@@ -10,21 +12,26 @@ import org.springframework.stereotype.Service;
 @RequiredArgsConstructor
 public class LoginService {
     private final NureApiService apiService;
-    private String loginToken;
+
+    @Value("${user.login}")
+    private String userLogin;
+
+    @Value("${user.password}")
+    private String userPassword;
+
+    @Value("${api.login-url}")
+    private String loginUrl;
 
     @Scheduled(fixedRate = 1000 * 60 * 10)
     private void checkIn() {
-        String response = apiService.getStringForUrl("https://dl.nure.ua/login/index.php");
-        
-        loginToken = extractLoginToken(response);
-        log.info(loginToken);
-    }
+        LoginDTO loginDTO = apiService.getLoginData(loginUrl);
 
-    private String extractLoginToken(String response) {
-        if (response.contains("logintoken")) {
-            int position = response.indexOf("logintoken") + 19;
-            return response.substring(position, position + 32);
-        }
-        throw new RuntimeException("Couldn't retrieve login token from url.");
+        log.info("Got login token: {}", loginDTO.getLoginToken());
+        log.info("Got Set-Cookie: {}", loginDTO.getCookie());
+
+        loginDTO.setLogin(userLogin);
+        loginDTO.setPassword(userPassword);
+
+        apiService.sendLoginRequest(loginUrl, loginDTO);
     }
 }
