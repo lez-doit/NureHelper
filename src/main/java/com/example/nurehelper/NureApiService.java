@@ -3,12 +3,7 @@ package com.example.nurehelper;
 import com.example.nurehelper.dto.LoginDTO;
 import jakarta.annotation.PostConstruct;
 import lombok.RequiredArgsConstructor;
-import org.springframework.beans.factory.annotation.Value;
-import org.springframework.http.HttpEntity;
-import org.springframework.http.HttpHeaders;
-import org.springframework.http.MediaType;
-import org.springframework.http.RequestEntity;
-import org.springframework.http.ResponseEntity;
+import org.springframework.http.*;
 import org.springframework.stereotype.Service;
 import org.springframework.util.LinkedMultiValueMap;
 import org.springframework.util.MultiValueMap;
@@ -22,6 +17,8 @@ public class NureApiService {
     private final RestTemplate restTemplate;
     private HttpHeaders headers;
 
+    private String cookie;
+
     @PostConstruct
     private void init() {
         headers = new HttpHeaders();
@@ -31,14 +28,16 @@ public class NureApiService {
         ResponseEntity<String> response = restTemplate.getForEntity(url, String.class);
 
         return LoginDTO.builder()
-                .loginToken(extractLoginToken(Objects.requireNonNull(response.getBody())))
-                .cookie(response.getHeaders().getFirst(HttpHeaders.SET_COOKIE))
-                .build();
+                       .loginToken(extractLoginToken(Objects.requireNonNull(response.getBody())))
+                       .cookie(response.getHeaders()
+                                       .getFirst(HttpHeaders.SET_COOKIE))
+                       .build();
     }
 
     public void sendLoginRequest(String url, LoginDTO loginDTO) {
+        headers = new HttpHeaders();
         headers.setContentType(MediaType.APPLICATION_FORM_URLENCODED);
-        headers.set("Set-Cookie", loginDTO.getCookie());
+        headers.set("Cookie", loginDTO.getCookie());
 
         MultiValueMap<String, String> params = new LinkedMultiValueMap<>();
         params.add("logintoken", loginDTO.getLoginToken());
@@ -49,6 +48,23 @@ public class NureApiService {
 
         ResponseEntity<String> response = restTemplate.postForEntity(url, request, String.class);
         System.out.println(response.getBody());
+        cookie = response.getHeaders()
+                         .getFirst("Set-Cookie");
+
+        if (response.getStatusCode() == HttpStatus.SEE_OTHER) {
+            String redirectUrl = Objects.requireNonNull(response.getHeaders()
+                                                                .getLocation())
+                                        .toString();
+            headers = new HttpHeaders();
+            headers.set("Cookie", cookie);
+            request = new HttpEntity<>(headers);
+            ResponseEntity<String> redirectedResponse = restTemplate.exchange(
+                    redirectUrl,
+                    HttpMethod.GET,
+                    request,
+                    String.class);
+            System.out.println(redirectedResponse.getBody());
+        }
     }
 
     private String extractLoginToken(String response) {
