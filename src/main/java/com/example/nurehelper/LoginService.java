@@ -21,5 +21,6 @@ public class LoginService {
     @Scheduled(fixedRate = 1000 * 60 * 10)
     private void checkIn() {
         apiService.sendLoginRequest(userLogin, userPassword);
+        apiService.getTimetable();
     }
 }
